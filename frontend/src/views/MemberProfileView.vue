@@ -8,8 +8,17 @@ import { useLoyaltyData } from '../stores/useLoyaltyData'
 const { state, refreshAll, fetchMemberProfile } = useLoyaltyData()
 const selectedMemberId = ref('')
 const profileLoading = ref(false)
+const profileError = ref('')
 
 const profile = computed(() => state.memberProfile)
+
+const hasError = computed(() => {
+  return !!(profileError.value || state.error)
+})
+
+const errorMessage = computed(() => {
+  return profileError.value || state.error || '加载失败，请稍后重试'
+})
 
 const timelineEvents = computed(() => {
   if (!profile.value) return []
@@ -45,6 +54,7 @@ const timelineEvents = computed(() => {
 
 onMounted(async () => {
   profileLoading.value = true
+  profileError.value = ''
   try {
     await refreshAll()
     if (state.members[0]) {
@@ -52,6 +62,8 @@ onMounted(async () => {
       selectedMemberId.value = firstId
       await fetchMemberProfile(Number(firstId))
     }
+  } catch (error) {
+    profileError.value = error.message || '加载失败，请稍后重试'
   } finally {
     profileLoading.value = false
   }
@@ -60,8 +72,11 @@ onMounted(async () => {
 watch(selectedMemberId, async (newId, oldId) => {
   if (newId && newId !== oldId && !profileLoading.value) {
     profileLoading.value = true
+    profileError.value = ''
     try {
       await fetchMemberProfile(Number(newId))
+    } catch (error) {
+      profileError.value = error.message || '加载失败，请稍后重试'
     } finally {
       profileLoading.value = false
     }
@@ -97,6 +112,27 @@ function formatDiscount(discountPercent) {
   const pricePercent = 100 - discountPercent
   return `${pricePercent}折`
 }
+
+async function retryLoad() {
+  profileLoading.value = true
+  profileError.value = ''
+  try {
+    if (state.members.length === 0) {
+      await refreshAll()
+      if (state.members[0]) {
+        const firstId = state.members[0].id
+        selectedMemberId.value = firstId
+        await fetchMemberProfile(Number(firstId))
+      }
+    } else if (selectedMemberId.value) {
+      await fetchMemberProfile(Number(selectedMemberId.value))
+    }
+  } catch (error) {
+    profileError.value = error.message || '加载失败，请稍后重试'
+  } finally {
+    profileLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -121,7 +157,7 @@ function formatDiscount(discountPercent) {
       <div></div>
     </div>
 
-    <template v-if="!profileLoading && !state.loading && profile">
+    <template v-if="!profileLoading && !state.loading && !hasError && profile">
       <div class="metrics-grid">
         <MetricCard label="累计消费" :value="`¥${profile.stats.total_spent.toFixed(2)}`" hint="历史消费总金额" />
         <MetricCard label="当前积分" :value="profile.stats.total_points" hint="可用积分余额" />
@@ -222,6 +258,13 @@ function formatDiscount(discountPercent) {
 
     <div v-else-if="profileLoading || state.loading" class="panel">
       <p class="empty-state">加载中...</p>
+    </div>
+    <div v-else-if="hasError" class="panel">
+      <div class="error-state">
+        <p class="error-title">加载失败</p>
+        <p class="error-message">{{ errorMessage }}</p>
+        <button class="retry-btn" @click="retryLoad">重新加载</button>
+      </div>
     </div>
     <div v-else-if="state.members.length > 0" class="panel">
       <p class="empty-state">请在上方选择会员查看画像</p>
@@ -384,5 +427,44 @@ function formatDiscount(discountPercent) {
   background: #fff1e8;
   padding: 4px 10px;
   border-radius: 6px;
+}
+
+.error-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #b74a32;
+  margin: 0 0 8px 0;
+}
+
+.error-message {
+  color: #6c6258;
+  font-size: 14px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  background: #c45f35;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.retry-btn:hover {
+  background: #a94f2c;
+}
+
+.retry-btn:active {
+  background: #8a3f22;
 }
 </style>
