@@ -7,6 +7,7 @@ import { useLoyaltyData } from '../stores/useLoyaltyData'
 
 const { state, refreshAll, fetchMemberProfile } = useLoyaltyData()
 const selectedMemberId = ref('')
+const profileLoading = ref(false)
 
 const profile = computed(() => state.memberProfile)
 
@@ -43,15 +44,27 @@ const timelineEvents = computed(() => {
 })
 
 onMounted(async () => {
-  await refreshAll()
-  if (state.members[0]) {
-    selectedMemberId.value = state.members[0].id
+  profileLoading.value = true
+  try {
+    await refreshAll()
+    if (state.members[0]) {
+      const firstId = state.members[0].id
+      selectedMemberId.value = firstId
+      await fetchMemberProfile(Number(firstId))
+    }
+  } finally {
+    profileLoading.value = false
   }
 })
 
-watch(selectedMemberId, async (newId) => {
-  if (newId) {
-    await fetchMemberProfile(Number(newId))
+watch(selectedMemberId, async (newId, oldId) => {
+  if (newId && newId !== oldId && !profileLoading.value) {
+    profileLoading.value = true
+    try {
+      await fetchMemberProfile(Number(newId))
+    } finally {
+      profileLoading.value = false
+    }
   }
 })
 
@@ -101,14 +114,14 @@ function formatDiscount(discountPercent) {
         选择会员
         <MemberSelect v-model="selectedMemberId" :members="state.members" />
       </label>
-      <div v-if="profile" class="member-brief">
+      <div v-if="profile && !profileLoading && !state.loading" class="member-brief">
         <span class="member-tier-badge">{{ profile.member.tier_name }}</span>
         <span class="member-phone">{{ profile.member.phone }}</span>
       </div>
       <div></div>
     </div>
 
-    <template v-if="profile">
+    <template v-if="!profileLoading && !state.loading && profile">
       <div class="metrics-grid">
         <MetricCard label="累计消费" :value="`¥${profile.stats.total_spent.toFixed(2)}`" hint="历史消费总金额" />
         <MetricCard label="当前积分" :value="profile.stats.total_points" hint="可用积分余额" />
@@ -207,7 +220,7 @@ function formatDiscount(discountPercent) {
       </div>
     </template>
 
-    <div v-else-if="state.loading" class="panel">
+    <div v-else-if="profileLoading || state.loading" class="panel">
       <p class="empty-state">加载中...</p>
     </div>
     <div v-else-if="state.members.length > 0" class="panel">
