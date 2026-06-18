@@ -76,6 +76,14 @@ function voucherStatusClass(status) {
   const map = { unused: 'success', used: 'neutral', expired: 'danger' }
   return map[status] || 'neutral'
 }
+
+function formatDiscount(discountPercent) {
+  if (!discountPercent || discountPercent <= 0) {
+    return '无折扣'
+  }
+  const pricePercent = 100 - discountPercent
+  return `${pricePercent}折`
+}
 </script>
 
 <template>
@@ -125,7 +133,7 @@ function voucherStatusClass(status) {
         <MetricCard
           label="会员等级"
           :value="profile.member.tier_name"
-          :hint="`折扣 ${100 - profile.member.discount_percent > 100 ? '无' : (100 - profile.member.discount_percent) + '%'}`"
+          :hint="formatDiscount(profile.member.discount_percent)"
         />
         <MetricCard label="生日" :value="formatDate(profile.member.birthday)" hint="会员生日日期" />
         <MetricCard label="注册时间" :value="formatDate(profile.member.created_at)" hint="加入会员日期" />
@@ -199,7 +207,10 @@ function voucherStatusClass(status) {
       </div>
     </template>
 
-    <div v-else-if="state.members.length > 0 && !state.loading" class="panel">
+    <div v-else-if="state.loading" class="panel">
+      <p class="empty-state">加载中...</p>
+    </div>
+    <div v-else-if="state.members.length > 0" class="panel">
       <p class="empty-state">请在上方选择会员查看画像</p>
     </div>
   </section>

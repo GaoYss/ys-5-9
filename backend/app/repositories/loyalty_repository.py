@@ -123,7 +123,6 @@ class LoyaltyRepository:
                     JOIN members m ON m.id = tx.member_id
                     WHERE tx.member_id = ?
                     ORDER BY tx.id DESC
-                    LIMIT 30
                     """,
                     (member_id,),
                 ).fetchall()

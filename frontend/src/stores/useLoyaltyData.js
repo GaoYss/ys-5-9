@@ -73,6 +73,7 @@ export function useLoyaltyData() {
       return vouchers
     },
     async fetchMemberProfile(memberId) {
+      state.memberProfile = null
       state.loading = true
       state.error = ''
       try {

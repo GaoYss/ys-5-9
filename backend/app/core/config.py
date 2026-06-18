@@ -7,14 +7,11 @@ class Settings(BaseSettings):
     app_name: str = "Milk Tea Loyalty API"
     database_url: str = "data/loyalty.db"
     cors_origins: list[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-        "http://localhost:5175",
-        "http://127.0.0.1:5175",
-        "http://localhost:5176",
-        "http://127.0.0.1:5176"
+        f"http://localhost:{port}"
+        for port in range(5173, 5190)
+    ] + [
+        f"http://127.0.0.1:{port}"
+        for port in range(5173, 5190)
     ]
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="LOYALTY_")
