@@ -4,6 +4,7 @@ export const loyaltyApi = {
   dashboard: () => http.get('/members/dashboard'),
   members: () => http.get('/members'),
   createMember: (payload) => http.post('/members', payload),
+  memberProfile: (memberId) => http.get(`/members/${memberId}/profile`),
   rules: () => http.get('/points/rules'),
   earnPoints: (payload) => http.post('/points/earn', payload),
   transactions: () => http.get('/points/transactions'),

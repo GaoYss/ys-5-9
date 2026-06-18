@@ -11,7 +11,8 @@ const state = reactive({
   gifts: [],
   tiers: [],
   vouchers: [],
-  transactions: []
+  transactions: [],
+  memberProfile: null
 })
 
 async function run(action, successMessage = '') {
@@ -70,6 +71,20 @@ export function useLoyaltyData() {
       const vouchers = await run(() => loyaltyApi.issueBirthdayVouchers(), '生日礼券发放完成')
       await refreshAll()
       return vouchers
+    },
+    async fetchMemberProfile(memberId) {
+      state.loading = true
+      state.error = ''
+      try {
+        const profile = await loyaltyApi.memberProfile(memberId)
+        state.memberProfile = profile
+        return profile
+      } catch (error) {
+        state.error = error.message
+        throw error
+      } finally {
+        state.loading = false
+      }
     }
   }
 }

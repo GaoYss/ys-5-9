@@ -65,6 +65,18 @@ CREATE TABLE IF NOT EXISTS vouchers (
     expires_at TEXT NOT NULL,
     FOREIGN KEY (member_id) REFERENCES members(id)
 );
+
+CREATE TABLE IF NOT EXISTS tier_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL,
+    from_tier_id INTEGER,
+    to_tier_id INTEGER NOT NULL,
+    from_tier_name TEXT,
+    to_tier_name TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id)
+);
 """
 
 
@@ -94,6 +106,17 @@ VALUES
     (1, '林晓茶', '13800000001', '1998-06-14', 860, 3),
     (2, '周芋圆', '13800000002', '1996-11-22', 260, 1),
     (3, '陈波波', '13800000003', '1994-02-08', 1680, 4);
+
+INSERT OR IGNORE INTO tier_history (id, member_id, from_tier_id, to_tier_id, from_tier_name, to_tier_name, reason, created_at)
+VALUES
+    (1, 1, NULL, 1, NULL, '青铜会员', '新会员注册', '2025-01-15 10:23:45'),
+    (2, 1, 1, 2, '青铜会员', '白银会员', '累计积分达到300', '2025-03-22 14:56:12'),
+    (3, 1, 2, 3, '白银会员', '黄金会员', '累计积分达到800', '2025-08-10 16:42:33'),
+    (4, 2, NULL, 1, NULL, '青铜会员', '新会员注册', '2025-05-08 09:15:20'),
+    (5, 3, NULL, 1, NULL, '青铜会员', '新会员注册', '2024-11-20 11:30:00'),
+    (6, 3, 1, 2, '青铜会员', '白银会员', '累计积分达到300', '2024-12-15 18:22:45'),
+    (7, 3, 2, 3, '白银会员', '黄金会员', '累计积分达到800', '2025-02-28 13:48:10'),
+    (8, 3, 3, 4, '黄金会员', '黑金会员', '累计积分达到1600', '2025-06-05 20:15:30');
 """
 
 

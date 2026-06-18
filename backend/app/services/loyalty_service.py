@@ -24,6 +24,14 @@ class LoyaltyService:
         tier = self.repo.best_tier_for_points(member["points"])
         if member["tier_id"] != tier["id"]:
             self.repo.update_member_tier(member["id"], tier["id"])
+            self.repo.add_tier_history(
+                member_id=member["id"],
+                from_tier_id=member["tier_id"],
+                to_tier_id=tier["id"],
+                from_tier_name=member.get("tier_name"),
+                to_tier_name=tier["name"],
+                reason=f"累计积分达到{tier['min_points']}",
+            )
         refreshed = self.repo.get_member(member["id"])
         if refreshed is None:
             raise HTTPException(status_code=404, detail="会员不存在")
@@ -40,7 +48,16 @@ class LoyaltyService:
 
         tier = self.repo.best_tier_for_points(0)
         try:
-            return self._normalize_member(self.repo.create_member(name, phone, birthday, tier["id"]))
+            member = self.repo.create_member(name, phone, birthday, tier["id"])
+            self.repo.add_tier_history(
+                member_id=member["id"],
+                from_tier_id=None,
+                to_tier_id=tier["id"],
+                from_tier_name=None,
+                to_tier_name=tier["name"],
+                reason="新会员注册",
+            )
+            return self._normalize_member(member)
         except Exception as exc:
             raise HTTPException(status_code=409, detail="手机号已存在或会员创建失败") from exc
 
@@ -132,4 +149,51 @@ class LoyaltyService:
             "total_points": sum(member["points"] for member in members),
             "gifts_count": len([gift for gift in gifts if gift["active"]]),
             "active_vouchers": len([voucher for voucher in vouchers if voucher["status"] == "unused"]),
+        }
+
+    def get_member_profile(self, member_id: int) -> dict:
+        member = self.get_member_or_404(member_id)
+        transactions = self.repo.list_transactions(member_id)
+        vouchers = self.repo.list_member_vouchers(member_id)
+        tier_history = self.repo.list_tier_history(member_id)
+
+        total_spent = 0.0
+        earn_count = 0
+        redeem_count = 0
+        earn_points = 0
+        redeem_points = 0
+        for tx in transactions:
+            if tx["type"] == "earn":
+                earn_count += 1
+                earn_points += tx["points"]
+                note = tx["note"]
+                if "消费" in note and "元" in note:
+                    try:
+                        import re
+                        match = re.search(r"消费\s*([\d.]+)\s*元", note)
+                        if match:
+                            total_spent += float(match.group(1))
+                    except Exception:
+                        pass
+            elif tx["type"] == "redeem":
+                redeem_count += 1
+                redeem_points += abs(tx["points"])
+
+        stats = {
+            "total_spent": round(total_spent, 2),
+            "total_points": member["points"],
+            "earn_count": earn_count,
+            "earn_points": earn_points,
+            "redeem_count": redeem_count,
+            "redeem_points": redeem_points,
+            "voucher_count": len(vouchers),
+            "unused_voucher_count": len([v for v in vouchers if v["status"] == "unused"]),
+        }
+
+        return {
+            "member": member,
+            "stats": stats,
+            "transactions": transactions,
+            "vouchers": vouchers,
+            "tier_history": tier_history,
         }

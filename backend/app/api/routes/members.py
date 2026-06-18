@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.schemas.loyalty import Dashboard, Member, MemberCreate, Transaction
+from app.schemas.loyalty import Dashboard, Member, MemberCreate, MemberProfile, Transaction
 from app.services.loyalty_service import LoyaltyService
 
 router = APIRouter()
@@ -31,3 +31,8 @@ def get_member(member_id: int) -> dict:
 def list_member_transactions(member_id: int) -> list[dict]:
     service.get_member_or_404(member_id)
     return service.list_transactions(member_id)
+
+
+@router.get("/{member_id}/profile", response_model=MemberProfile)
+def get_member_profile(member_id: int) -> dict:
+    return service.get_member_profile(member_id)

@@ -167,3 +167,50 @@ class LoyaltyRepository:
                 """
             ).fetchall()
             return rows_to_dicts(rows)
+
+    def list_member_vouchers(self, member_id: int) -> list[dict]:
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT v.*, m.name AS member_name
+                FROM vouchers v
+                JOIN members m ON m.id = v.member_id
+                WHERE v.member_id = ?
+                ORDER BY v.id DESC
+                """,
+                (member_id,),
+            ).fetchall()
+            return rows_to_dicts(rows)
+
+    def add_tier_history(
+        self,
+        member_id: int,
+        from_tier_id: int | None,
+        to_tier_id: int,
+        from_tier_name: str | None,
+        to_tier_name: str,
+        reason: str,
+    ) -> dict:
+        with get_connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO tier_history (member_id, from_tier_id, to_tier_id, from_tier_name, to_tier_name, reason)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (member_id, from_tier_id, to_tier_id, from_tier_name, to_tier_name, reason),
+            )
+            history_id = cursor.lastrowid
+            row = conn.execute("SELECT * FROM tier_history WHERE id = ?", (history_id,)).fetchone()
+            return dict(row)
+
+    def list_tier_history(self, member_id: int) -> list[dict]:
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM tier_history
+                WHERE member_id = ?
+                ORDER BY id DESC
+                """,
+                (member_id,),
+            ).fetchall()
+            return rows_to_dicts(rows)

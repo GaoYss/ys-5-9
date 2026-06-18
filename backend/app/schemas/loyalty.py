@@ -92,3 +92,33 @@ class Dashboard(BaseModel):
     total_points: int
     gifts_count: int
     active_vouchers: int
+
+
+class TierHistory(BaseModel):
+    id: int
+    member_id: int
+    from_tier_id: int | None = None
+    to_tier_id: int
+    from_tier_name: str | None = None
+    to_tier_name: str
+    reason: str
+    created_at: str
+
+
+class MemberStats(BaseModel):
+    total_spent: float
+    total_points: int
+    earn_count: int
+    earn_points: int
+    redeem_count: int
+    redeem_points: int
+    voucher_count: int
+    unused_voucher_count: int
+
+
+class MemberProfile(BaseModel):
+    member: Member
+    stats: MemberStats
+    transactions: list[Transaction]
+    vouchers: list[Voucher]
+    tier_history: list[TierHistory]
